@@ -12,7 +12,7 @@ class Post extends Model
     protected $table = "post";
 
     public function User(){
-        return $this->hasOne(User::class);    
+        return $this->belongsTo(User::class);    
     }
 
     public function Comments(){

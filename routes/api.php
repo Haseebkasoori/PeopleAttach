@@ -40,47 +40,54 @@ use Illuminate\Support\Facades\Route;
 
     //CRUD Users SECTION
     //Get specific user
-    Route::get('GetUser/{id}', [UserController::class, 'GetUser']);
+    Route::get('GetUser', [UserController::class, 'GetUser']);
     //Get All user
-    Route::get('GetUser', [UserController::class, 'GetAllUsers']);
+    Route::get('GetAllUsers', [UserController::class, 'GetAllUsers']);
     //Update
-    Route::put('updateUser/{id}', [userController::class, 'UpdateUser']);
+    Route::put('updateUser', [userController::class, 'UpdateUser']);
     //Delete 
-    Route::delete('deleteUser/{id}', [userController::class, 'DeleteUser']);
+    Route::delete('deleteUser', [userController::class, 'DeleteUser']);
     //Search User 
-    Route::get('search/{name}', [userController::class, 'SearchUser']);
+    Route::get('search', [userController::class, 'SearchUser']);
 
     //POSTS SECTION
     //Create Post
-    Route::post('createPost', [PostController::class, 'upload']);
+    Route::post('CreatePost', [PostController::class, 'CreatePost']);
     //Get specific Post
-    Route::get('GetPost/{id}', [PostController::class, 'GetPost']);
+    Route::get('GetPost', [PostController::class, 'GetPost']);
     //Get All Post
-    Route::get('GetPost', [PostController::class, 'GetAllPosts']);
+    Route::get('GetAllPosts', [PostController::class, 'GetAllPosts']);
     //Delete Post
-    Route::delete('delete/{id}', [PostController::class, 'DeletePost']);
+    Route::delete('DeletePost', [PostController::class, 'DeletePost']);
     //Update Post
-    Route::put('update', [PostController::class, 'UpdatePost']);
+    Route::put('UpdatePost', [PostController::class, 'UpdatePost']);
 
-    //COMMENT SECTION
+    //COMMENTS SECTION
     //Creat Comment
     Route::post('comments', [CommentController::class, 'comment']);
-    //Get specific Comment
-    Route::get('ShowComment/{id}', [CommentController::class, 'GetComment']);
-    //Get All Comments
-    Route::get('GetAllComment', [CommentController::class, 'GetAllComment']);
     //Delete Comment
-    Route::delete('DeleteComment/{id}', [CommentController::class, 'DeleteComment']);
+    Route::delete('DeleteComment', [CommentController::class, 'DeleteComment']);
     //Update Comment
     Route::put('updateComment', [CommentController::class, 'updateComment']);
+        
+    Route::post('CreatePost', [PostController::class, 'CreatePost']);
+    //Get specific Post
+    Route::get('GetPost', [PostController::class, 'GetPost']);
+    //Get All Post
+    Route::get('GetAllPost', [PostController::class, 'GetAllPosts']);
+    //Delete Post
+    Route::delete('deletepost', [PostController::class, 'DeletePost']);
+    //Update Post
+    Route::put('updatePost', [PostController::class, 'UpdatePost']);
+
 
     //FRIENDS SECTION
     //Send Friend Request
     Route::post('SendFriendRequest', [FriendRequestController::class, 'SendFriendRequest']);
     //update Frien d Request
     Route::put('updateFriendRequest', [FriendRequestController::class, 'UpdateFriendRequest']);
-    //Delete Friend Request
-    Route::delete('RemoveFriendRequest/{id}', [FriendRequestController::class, 'RemoveFriendRequest']);
+    //Get Friend Request
+    Route::get('GetAllFriendRequest', [FriendRequestController::class, 'GetAllFriendRequest']);
 
     //LOGOUT
     Route::get('logout', [LoginController::class, 'logout']);

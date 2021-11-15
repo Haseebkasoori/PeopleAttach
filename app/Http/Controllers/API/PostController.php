@@ -1,122 +1,158 @@
 <?php
 
 namespace App\Http\Controllers\API;
+
 use Illuminate\Support\Facades\Validator;
-use App\Http\Controllers\Controller; 
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
-use App\Models\Post;
-use Illuminate\Http\Request;
-use App\Http\Requests\PostRequest;
+use App\Http\Requests\GetAllPostsRequest;
 use App\Http\Requests\UpdatePostRequest;
+use App\Http\Requests\DeletePostRequest;
+use App\Http\Requests\GetPostRequest;
+use App\Http\Controllers\Controller; 
+use App\Http\Requests\PostRequest;
+use App\Models\FriendRequest;
+use Illuminate\Http\Request;
+use App\Models\Post;
+
 
 class PostController extends Controller
 {
     //file uploading
-    public function upload(PostRequest $request) 
+    public function CreatePost(PostRequest $request) 
     { 
         $token = $request->bearerToken(); 
         try {
-            $decoded_data=JWT::decode($token, new Key("sumaila", 'HS256'));
-            $input = $request->validated();
+            $decoded_data=(new JwtController)->varifyToken($token);
+            $request_data = $request->validated();
             $file_name=null;  
             // converting base64 decoded image to simple image if exist
-            if (!empty($input['attachment'])) {
+            if (!empty($request_data['attachment'])) {
                 // upload Attachment
                 $destinationPath = storage_path('\app\public\post\\'); 
-                $input_type_aux = explode("/", $input['attachment']['mime']);
+                $input_type_aux = explode("/", $request_data['attachment']['mime']);
                 $attachment_extention=$input_type_aux[1];
-                $image_base64 = base64_decode($input['attachment']['data']);
+                $image_base64 = base64_decode($request_data['attachment']['data']);
                 $file_name=uniqid() . '.'.$attachment_extention;
                 $file = $destinationPath . $file_name;
                 // saving in local storage
                 file_put_contents($file, $image_base64);
             }
-                //store your file into directory and db
-                $post = new Post();
-                $post->attachment = $file_name;
-                $post->text = request('text');
-                $post->user_id = $decoded_data->data->id;
-                $post->visibility = request('visibility');
-                $post->save();  
-                return response()->json([
-                    "success" => true,
-                    "message" => "Post successfully Created",
-                ]);
-                }
+            //store your file into directory and db
+            $post = new Post();
+            $post->attachment = $file_name;
+            $post->text = request('text');
+            $post->user_id = $decoded_data->data->id;
+            $post->visibility = request('visibility');
+            $post->save();  
+
+            $response_data['data']=Null; 
+            $response_data['message']='Post successfully Created';
+            return response()->success($response_data,200);
             
-        catch (\Exception $e) {
-        return response()->json(['error'=>$e->getMessage()], 500);                    
+        }catch(\Exception $ex){
+            $response_data['error']=$ex->getMessage();
+            $response_data['message']="Someting went Worng";
+            return response()->error($response_data, 404);
         }
     }
-
+    
     //Get Single Post
-    public function GetPost(Request $request,$id)
+    public function GetPost(GetPostRequest $request)
     {
-        $request['id']=$id;
-        $validator = Validator::make($request->all(),[ 
-            'id' => 'exists:post,id',
-            ]);
-        if($validator->fails()) {          
-            return response()->json(['error'=>$validator->errors()], 401);                        
+        $token=request()->bearerToken();       
+        
+        $request_data=$validator->validated();      
+        $decoded_data=(new JwtController)->varifyToken($token);
+        
+        $post_data=Post::with('User','Comments')->find($request_data['id']);
+        $friend_request = DB::select(DB::raw(   
+                                                "select * from friend_request 
+                                                where (reciever='{$decoded_data->data->id}'AND sender='{$post_data->user_id}')
+                                                OR (sender='{$decoded_data->data->id}'AND reciever='{$post_data->user_id}') 
+                                                AND status='Approved'"
+                                            ));
+        
+        //check status
+        if(!empty($friend_request[0]->id) ){
+            $response_data['data']=$post_data; 
+            $response_data['message']='Post successfully Created';
+            return response()->success($response_data,200);
+        }else{
+            $response_data['error']='Sorry,All posts are friends only!!';
+            $response_data['message']="Someting went Worng";
+            return response()->error($response_data, 404);     
         }
-        $data=$validator->validated();
-        $post_data=Post::with('Comments')->find($data['id']);
-        return response()->json([
-            "success" => true,
-            "data" => $post_data
-        ]);
+        
     }
     //Fetch all Posts
-    public function GetAllPosts(Request $request)
+    public function GetAllPosts(GetAllPostsRequest $request)
     {
-        $user_data=Post::with('Comments')->get();
-        return response()->json([
-            "success" => true,
-            "data" => $user_data
-        ]);
+        $token=request()->bearerToken();       
+        
+        $request_data=$validator->validated();      
+        $decoded_data=(new JwtController)->varifyToken($token);
+        
+        $post_data=Post::with('User','Comments')->find($request_data['id']);
+        $friend_request = DB::select(DB::raw(   
+                                                "select * from friend_request 
+                                                where (reciever='{$decoded_data->data->id}'AND sender='{$post_data->user_id}')
+                                                OR (sender='{$decoded_data->data->id}'AND reciever='{$post_data->user_id}') 
+                                                AND status='Approved'"
+                                            ));
+        
+        //check status
+        if(!empty($friend_request[0]->id) ){
+            $response_data['data']=$post_data; 
+            $response_data['message']='Post successfully Created';
+            return response()->success($response_data,200);
+        }else{
+            $response_data['error']='Sorry,All posts are friends only!!';
+            $response_data['message']="Someting went Worng";
+            return response()->error($response_data, 404);     
+        }
     }
      //update Post data
      public function UpdatePost(UpdatePostRequest $request){
-        $input = $request->validated();
-        $data = Post::find($input['id']);
-        if (!empty($input['attachment'])) {
+        $request_data = $request->validated();
+        $post = Post::find($request_data['id']);
+        if (!empty($request_data['attachment'])) {
             // upload Attachment
             $destinationPath = storage_path('\app\public\post\\'); 
-            $input_type_aux = explode("/", $input['attachment']['mime']);
-            $attachment_extention=$input_type_aux[1];
-            $image_base64 = base64_decode($input['attachment']['data']);
+            $file_type_aux = explode("/", $request_data['attachment']['mime']);
+            $attachment_extention=$file_type_aux[1];
+            $image_base64 = base64_decode($request_data['attachment']['data']);
             $file_name=uniqid() . '.'.$attachment_extention;
             $file = $destinationPath . $file_name;
             // saving in local storage
             file_put_contents($file, $image_base64);
-            $data->attachment = $file_name;
+            $post->attachment = $file_name;
         }
-            //store your file into directory and db
-            $data->text = request('text');
-            $data->save();  
-        return response()->json([
-            "success" => true,
-            "message" => "Post Updated Successfully!"
-        ]);
+    
+        //store your file into directory and db
+        $post->text = request('text');
+        $post->save();  
+    
+        $response_data['data']=Null; 
+        $response_data['message']='Post Updated Successfully!!';
+        return response()->success($response_data,200);
     }
     
     //Delete post
-    public function DeletePost($id){
+    public function DeletePost(DeletePostRequest $request ){
+        $request_data=$validator->validated();
         $user = new Post();
-        $user = Post::find($id);
+        $user = Post::find($request_data['id']);
         if($user){
-        $user->delete();
-        return response()->json([
-            "success" => true,
-            "message" => "Post Deleted Successfully!!"
-        ]);
-    }
-        else{
-            return response()->json([
-                "success" => true,
-                "message" => "Post not exist"
-            ]);
+            $user->delete();
+            
+            $response_data['data']=Null; 
+            $response_data['message']='Post Deleted Successfully!!';
+            return response()->success($response_data,200);
+
+        }else{
+            $response_data['error']='Post not exist!!';
+            $response_data['message']="Someting went Worng";
+            return response()->error($response_data, 404); 
+
         }
     }
 }
