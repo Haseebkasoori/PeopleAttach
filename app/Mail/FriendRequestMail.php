@@ -7,16 +7,16 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class testMail extends Mailable
+class FriendRequestMail extends Mailable
 {
-  
     use Queueable, SerializesModels;
-    public $details;
+
     /**
      * Create a new message instance.
      *
      * @return void
      */
+    public $details;
     public function __construct($details)
     {
         $this->details = $details;
@@ -29,8 +29,6 @@ class testMail extends Mailable
      */
     public function build()
     {
-        //return $this->view('view.name');
-        
-        return $this->subject("Testing")->view("testmail");
+        return $this->subject("Got a New Friend Request")->view("AddFriend");
     }
 }

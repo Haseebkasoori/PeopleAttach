@@ -18,14 +18,12 @@ class User extends Authenticatable
      * @var string[]
      */
     protected $fillable = [
-        'name',
+        'user_name',
+        'first_name',
+        'last_name',
         'email',
-        'age',
-        'gender',
-        'date_of_birth',
-        'password',
-        'verification_token',
-        'profile_image',
+        'phone_number',
+        'post_count',
     ];
 
     /**
@@ -36,6 +34,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'deleted_at',
     ];
 
     /**
@@ -46,6 +45,14 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+
+    /**
+     * The Table name.
+     *
+     */
+    protected $table = 'users';
+
 
     public function Post(){
         return $this->hasMany(Post::class);    

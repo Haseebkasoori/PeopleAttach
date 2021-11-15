@@ -10,7 +10,6 @@ use App\Http\Requests\ForgotRequest;
 
 class ForgotPasswordController extends Controller
 {
-    public $successStatus = 200;
     public function forgotPassword(ForgotRequest $request)
 {
         $input=$request->validated();
@@ -23,6 +22,8 @@ class ForgotPasswordController extends Controller
         //for generate link in URL
         
         Mail::to($input['email'])->send(new ForgotPassword($password));
-        return response()->json(['success'=>"New Password Send to Your Mail!"], $this-> successStatus); 
+        $response_data['data']=Null; 
+        $response_data['message']=' Password Send to Your Mail';
+        return response()->success($response_data,200);
 }
 }

@@ -20,113 +20,84 @@ class CommentController extends Controller
     {    
         $token = $request->bearerToken();
         try {
-        $decoded_data=JWT::decode($token, new Key("sumaila", 'HS256'));
-        $input = $request->validated();
-        $file_name = null;
-        if (!empty($input['attachment'])) {    
-            // upload Attachment
-            $destinationPath = storage_path('\app\public\post\\'); 
-            $input_type_aux = explode("/", $input['attachment']['mime']);
-            $attachment_extention=$input_type_aux[1];
-            $image_base64 = base64_decode($input['attachment']['data']);
-            $file_name=uniqid() . '.'.$attachment_extention;
-            $file = $destinationPath . $file_name;
-            // saving in local storage
-            file_put_contents($file, $image_base64);
-        }
+            $decoded_data=(new JwtController)->varifyToken($token);
+
+            $request_data = $request->validated();
+            $file_name = null;
+            if (!empty($data['attachment'])) {    
+                // upload Attachment
+                $destinationPath = storage_path('\app\public\post\\'); 
+                $input_type_aux = explode("/", $request_data['attachment']['mime']);
+                $attachment_extention=$input_type_aux[1];
+                $image_base64 = base64_decode($request_data['attachment']['data']);
+                $file_name=uniqid() . '.'.$attachment_extention;
+                $file = $destinationPath . $file_name;
+                // saving in local storage
+                file_put_contents($file, $image_base64);
+            }
             //store your file into directory and db
             $save = new Comment();
             $save->attachment = $file_name;
-            $save->text = request('text');
+            $save->text = $request_data['text'];
             $save->user_id = $decoded_data->data->id;
-            $save->post_id =  request('id');
+            $save->post_id =  $data['id'];
             $save->save();  
+            
             //for generate link in URL
-            $post = Post::where('id', request('id'))->first();
+            $post = Post::where('id', $data['id'])->first();
             $post_user = User::with('Post')->where('id', $post->user_id)->first();
-            $data['link']=url('api/GetPost/'.request('id'));
-            $data['name'] = $post_user->name;
-            $data['text'] = $post->text;
-            $data['email'] = $post_user->email;
-            Mail::to($data['email'])->send(new CommentNotificationMail($data));
+            
+            $email_data['link']=url('api/GetPost/'.$data['id']);
+            $email_data['name'] = $post_user->name;
+            $email_data['text'] = $post->text;
+            $email_data['email'] = $post_user->email;
+            Mail::to($post_user['email'])->send(new CommentNotificationMail($email_data));
+           
             //for JSON response
-            return response()->json([
-                "success" => true,
-                "message" => "Commented!",
-                "file" => Null
-            ]);
+            $response_data['data']=null; 
+            $response_data['message']='Commented!!';
+            return response()->success($response_data,200);
         }
         catch (\Exception $e) {            
-            return response()->json(['error'=>$e->getMessage()], 500);                    
+            $response_data['error']=$e->getMessage();
+            $response_data['message']="Someting went Worng";
+            return response()->error($response_data, 404); 
         }
     }
     //update Comments
     public function updateComment(UpdateCommentRequest $request){
-        $input = $request->validated();
-        $data = Comment::find($input['id']);
-        if (!empty($input['attachment'])) {
+        $reqeust_data = $request->validated();
+        $Comment = Comment::find($reqeust_data['id']);
+        if (!empty($reqeust_data['attachment'])) {
             // upload Attachment
             $destinationPath = storage_path('\app\public\comments\\'); 
-            $input_type_aux = explode("/", $input['attachment']['mime']);
+            $input_type_aux = explode("/", $reqeust_data['attachment']['mime']);
             $attachment_extention=$input_type_aux[1];
-            $image_base64 = base64_decode($input['attachment']['data']);
+            $image_base64 = base64_decode($reqeust_data['attachment']['data']);
             $file_name=uniqid() . '.'.$attachment_extention;
             $file = $destinationPath . $file_name;
             // saving in local storage
             file_put_contents($file, $image_base64);
-            $data->attachment = $file_name;
+            $Comment->attachment = $file_name;
         }
             //store your file into directory and db
-            $data->text = request('text');
-            $data->save();  
-            return response()->json([
-            "success" => true,
-            "message" => "Comment Updated Successfully!"
-        ]);
+            $Comment->text = $reqeust_data['text'];
+            $Comment->save();  
+            
+            $response_data['data']=null; 
+            $response_data['message']='Comment Updated Successfully!!';
+            return response()->success($response_data,200);
     }
-        //Delete Comment
-        public function DeleteComment($id){
-            $user = new Comment();
-            $user = Comment::find($id);
-            if($user){
-            $user->delete();
-            return response()->json([
-                "success" => true,
-                "message" => "Comment Deleted Successfully!!",
-            ]);
-    }
-        else{
-            return response()->json([
-                "success" => true,
-                "message" => "Comment deost not exist",
-                "data" => $user
-            ]);
+    //Delete Comment
+    public function DeleteComment(DeleteCommentRequest $request){
+        $request_data = $request->validated();
+        
+        $comment = Comment::find($request_data['id']);
+        if($comment){
+            $comment->delete();
+            $response_data['data']=null; 
+            $response_data['message']='Comment Delete Successfully!!';
+            return response()->success($response_data,200);
         }
     }
-        //Fetch Single Comment
-        public function GetComment(Request $request,$id)
-        {
-            $request['id']=$id;
-            $validator = Validator::make($request->all(),[ 
-                'id' => 'exists:Comments,id',
-                ]);
-            if($validator->fails()) {          
-                return response()->json(['error'=>$validator->errors()], 401);                        
-            }
-            $data=$validator->validated();
-            $user_data=Comment::find($data['id']);
-            return response()->json([
-                "success" => true,
-                "data" => $user_data
-            ]);
-        } 
-        //Fetch all Comments
-        public function GetAllComment(Request $request)
-        {
-            $user_data=Comment::all();
-            return response()->json([
-                "success" => true,
-                "data" => $user_data
-            ]);
-        }
 }
